@@ -2,7 +2,7 @@
 name = "mii"
 description = "A rust-embedded implementation of the monome ii protocol"
 categories = ["embedded", "hardware-support", "no-std"]
-documentation = "https://docs.rs/embedded-driver-template"
+documentation = "https://docs.rs/mii"
 authors = ["Chris Maniewski"]
 version = "0.1.0"
 edition = "2021"
