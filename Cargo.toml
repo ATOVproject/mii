@@ -1,6 +1,6 @@
 [package]
-name = "embedded-driver-template"
-description = "A rust-embedded driver template"
+name = "mii"
+description = "A rust-embedded implementation of the monome ii protocol"
 categories = ["embedded", "hardware-support", "no-std"]
 documentation = "https://docs.rs/embedded-driver-template"
 authors = ["Chris Maniewski"]
@@ -8,7 +8,7 @@ version = "0.1.0"
 edition = "2021"
 readme = "README.md"
 license = "MIT OR Apache-2.0"
-repository = "https://git.sr.ht/~chmanie/embedded-driver-template"
+repository = "https://git.sr.ht/~chmanie/mii"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

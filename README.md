@@ -1,15 +1,15 @@
-[![crates.io](https://img.shields.io/crates/d/embedded-driver.svg)](https://crates.io/crates/embedded-driver)
-[![crates.io](https://img.shields.io/crates/v/embedded-driver.svg)](https://crates.io/crates/embedded-driver)
-[![Documentation](https://docs.rs/embedded-driver/badge.svg)](https://docs.rs/embedded-driver)
+[![crates.io](https://img.shields.io/crates/d/mii.svg)](https://crates.io/crates/mii)
+[![crates.io](https://img.shields.io/crates/v/mii.svg)](https://crates.io/crates/mii)
+[![Documentation](https://docs.rs/mii/badge.svg)](https://docs.rs/mii)
 ![Minimum Supported Rust Version](https://img.shields.io/badge/rustc-1.46+-blue.svg)
 
-# `embedded-driver-template`
+# `mii`
 
->  A rust-embedded driver template to get you started
+>  A rust-embedded implementation of the monome ii protocol
 
 ## [API reference]
 
-[API reference]: https://docs.rs/embedded-driver
+[API reference]: https://docs.rs/mii
 
 ## Minimum Supported Rust Version (MSRV)
 
