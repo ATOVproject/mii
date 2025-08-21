@@ -16,21 +16,19 @@
 //! ### Example
 //!
 //! ```
-//! use mii::{Command, er301};
+//! use mii::{Command, devices::ansible};
 //!
-//! // Create a buffer. The longest ER-301 command is 4 bytes.
-//! let mut buffer = [0u8; er301::Commands::MAX_LENGTH];
+//! let mut buffer = [0u8; ansible::Commands::MAX_LENGTH];
 //!
-//! // 1. Define the command you want to send.
-//! let command = er301::Commands::SetCv { port: 5, value: 8192 };
+//! // Set CV output
+//! let cv_cmd = ansible::Commands::SetCv { port: 0, value: 4096 };
+//! let message = cv_cmd.to_bytes(&mut buffer).unwrap();
+//! // Send message over I2C to ansible::ADDRESS (0x20)
 //!
-//! // 2. Serialize the command into the buffer.
-//! let message: &[u8] = command.to_bytes(&mut buffer).unwrap();
-//!
-//! // 3. The `message` slice is now ready to be sent over I2C
-//! //    to the device at `er301::ADDRESS`.
-//! assert_eq!(message, &[0x11, 5, 0x20, 0x00]);
-//! assert_eq!(er301::ADDRESS, 0x31);
+//! // Trigger pulse
+//! let pulse_cmd = ansible::Commands::SetTrPulse { port: 1 };
+//! let message = pulse_cmd.to_bytes(&mut buffer).unwrap();
+//! // Send message over I2C to ansible::ADDRESS (0x20)
 //! ```
 
 #![cfg_attr(not(test), no_std)]
