@@ -1,140 +1,60 @@
+//! A `no-std`, hardware-agnostic library for serializing Monome II protocol commands.
+//!
+//! This crate provides type-safe structures for II-protocol commands for various
+//! Eurorack modules. Its sole purpose is to serialize these high-level commands
+//! into the correct byte sequences. It does not handle I2C communication itself.
+//!
+//! ## Usage
+//!
+//! 1.  Choose a module from the library, like `er301`.
+//! 2.  Instantiate a command enum, e.g., `er301::Commands::SetCv { ... }`.
+//! 3.  Create a buffer to hold the serialized message. The `Command::MAX_LENGTH`
+//!     associated constant can help you size this appropriately.
+//! 4.  Call the `.to_bytes()` method on your command object.
+//! 5.  If successful, you get a byte slice ready to be sent over I2C.
+//!
+//! ### Example
+//!
+//! ```
+//! use mii::{Command, er301};
+//!
+//! // Create a buffer. The longest ER-301 command is 4 bytes.
+//! let mut buffer = [0u8; er301::Commands::MAX_LENGTH];
+//!
+//! // 1. Define the command you want to send.
+//! let command = er301::Commands::SetCv { port: 5, value: 8192 };
+//!
+//! // 2. Serialize the command into the buffer.
+//! let message: &[u8] = command.to_bytes(&mut buffer).unwrap();
+//!
+//! // 3. The `message` slice is now ready to be sent over I2C
+//! //    to the device at `er301::ADDRESS`.
+//! assert_eq!(message, &[0x11, 5, 0x20, 0x00]);
+//! assert_eq!(er301::ADDRESS, 0x31);
+//! ```
+
 #![cfg_attr(not(test), no_std)]
 
-use core::cell::RefCell;
+pub mod devices;
 
-use embedded_hal::blocking::i2c::{Read, Write, WriteRead};
-
-#[derive(Debug)]
-pub enum Error<I> {
-    /// I2C bus error
-    I2C(I),
-    /// Connection error (device not found)
-    Conn,
-    /// Address error (invalid or out of bounds)
-    Address,
-    /// Port error (invalid or out of bounds)
-    Port,
+/// Represents errors that can occur during command serialization.
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum SerializationError {
+    /// The provided buffer was too small to serialize the command.
+    BufferTooSmall,
 }
 
-pub enum DeviceAddress {
-    Crow = 0x01,
-    Ww = 0x10,
-    Ansible = 0x20,
-    Mp = 0x30,
-    Er301 = 0x31,
-    Faderbank = 0x34,
-    Matrixarchate = 0x38,
-    Tetrapad = 0x3b,
-    Orca = 0x40,
-    DistingEx = 0x41,
-    Es = 0x50,
-    TelexO = 0x60,
-    TelexI = 0x68,
-}
+/// The core trait for any object that can be serialized into an II-compatible byte message.
+pub trait Command {
+    /// The maximum number of bytes this command could possibly serialize to.
+    /// This helps the user create a buffer of the correct size.
+    const MAX_LENGTH: usize;
 
-/// Generic device with a shared I2C bus
-pub struct Device<'a, I2C> {
-    address: u8,
-    i2c: &'a RefCell<I2C>,
-}
-
-impl<'a, I2C, S> Device<'a, I2C>
-where
-    I2C: Write<u8, Error = S> + Read<u8, Error = S> + WriteRead<u8, Error = S>,
-{
-    pub fn new(i2c: &'a RefCell<I2C>, address: u8) -> Self {
-        Self { address, i2c }
-    }
-    pub fn write(&mut self, data: &[u8]) -> Result<(), Error<S>> {
-        self.i2c
-            .borrow_mut()
-            .write(self.address, data)
-            .map_err(Error::I2C)?;
-        Ok(())
-    }
-
-    pub fn read(&mut self, buf: &mut [u8]) -> Result<(), Error<S>> {
-        self.i2c
-            .borrow_mut()
-            .read(self.address, buf)
-            .map_err(Error::I2C)?;
-        Ok(())
-    }
-
-    pub fn write_read(&mut self, data: &[u8], buf: &mut [u8]) -> Result<(), Error<S>> {
-        self.i2c
-            .borrow_mut()
-            .write_read(self.address, data, buf)
-            .map_err(Error::I2C)?;
-        Ok(())
-    }
-}
-
-pub struct Mii<I2C> {
-    i2c: RefCell<I2C>,
-}
-
-impl<'a, I2C, S> Mii<I2C>
-where
-    I2C: Write<u8, Error = S> + Read<u8, Error = S> + WriteRead<u8, Error = S>,
-{
-    pub fn new(i2c: I2C) -> Self {
-        Self {
-            i2c: RefCell::new(i2c),
-        }
-    }
-
-    pub fn create_device(&'a self, address: u8) -> Device<'a, I2C> {
-        Device {
-            address,
-            i2c: &self.i2c,
-        }
-    }
-}
-
-/// The 16n faderbank
-pub struct Faderbank<'a, I2C> {
-    device: Device<'a, I2C>,
-    fader_buf: [[u8; 2]; 16],
-}
-
-impl<'a, I2C, S> Faderbank<'a, I2C>
-where
-    I2C: Write<u8, Error = S> + Read<u8, Error = S> + WriteRead<u8, Error = S>,
-{
-    pub fn new(mii: &'a Mii<I2C>) -> Self {
-        Self {
-            device: mii.create_device(DeviceAddress::Faderbank as u8),
-            fader_buf: [[0; 2]; 16],
-        }
-    }
-
-    pub fn read_fader(&mut self, no: usize) -> Result<u16, Error<S>> {
-        self.device
-            .write_read(&[no as u8], &mut self.fader_buf[no])?;
-        Ok((self.fader_buf[no][0] as u16) << 8 | (self.fader_buf[no][1] as u16) & 0xff)
-    }
+    /// Serializes the command into the provided byte buffer.
+    ///
+    /// On success, it returns a slice of the buffer containing only the written bytes.
+    fn to_bytes<'a>(&self, buffer: &'a mut [u8]) -> Result<&'a [u8], SerializationError>;
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    use embedded_hal_mock::i2c::{Mock as I2cMock, Transaction as I2cTransaction};
-
-    #[test]
-    fn init() {
-        let mut i2c = I2cMock::new([]);
-        i2c.expect(&[
-            // connection check
-            I2cTransaction::write_read(
-                DeviceAddress::Faderbank as u8,
-                vec![0],
-                vec![0, 0],
-            ),
-        ]);
-        let mii = Mii::new(i2c);
-        let mut faderbank = Faderbank::new(&mii);
-        faderbank.read_fader(0).ok();
-    }
-}
+mod tests {}
